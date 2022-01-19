@@ -1,0 +1,5 @@
+[user]
+	name = Ahmed Al Kindi
+	email = ahmkind19@gmail.com
+[includeIf "gitdir:~/rihal/"]
+    path = ~/rihal/.gitconfig
