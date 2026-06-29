@@ -16,7 +16,7 @@ warn() { printf '\033[1;33m[dotfiles]\033[0m %s\n' "$*" >&2; }
 for t in zsh git curl; do
   command -v "$t" >/dev/null 2>&1 || warn "required tool '$t' not found — add it to the workspace image."
 done
-for t in tmux nvim rg; do
+for t in tmux nvim rg fzf; do
   command -v "$t" >/dev/null 2>&1 || warn "optional tool '$t' missing — related config won't fully work."
 done
 
@@ -37,6 +37,7 @@ clone_plugin() {
 }
 clone_plugin "zsh-users/zsh-autosuggestions"     "zsh-autosuggestions"
 clone_plugin "zsh-users/zsh-syntax-highlighting" "zsh-syntax-highlighting"
+clone_plugin "Aloxaf/fzf-tab"                    "fzf-tab"
 
 # 4. Symlink dotfiles into $HOME (backs up any existing real file)
 link() {

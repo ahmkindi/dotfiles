@@ -4,7 +4,8 @@ export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="avit"
 
 # Add wisely — too many plugins slow shell startup.
-plugins=(git golang docker-compose docker node npm zsh-autosuggestions zsh-syntax-highlighting tmux vi-mode)
+# Order matters: fzf before fzf-tab; zsh-syntax-highlighting must load last.
+plugins=(git golang docker docker-compose node npm tmux vi-mode fzf fzf-tab zsh-autosuggestions zsh-syntax-highlighting)
 
 # tmux autostart only on the local machine — NOT on Coder/remote-managed shells,
 # where the web terminal / `coder ssh` already provide a session.
@@ -18,6 +19,13 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#696969'
 
 # Load oh-my-zsh if installed (guarded so a bare shell still works).
 [[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
+
+# fzf keybindings (Ctrl-R history, Ctrl-T files, Alt-C cd) + completion.
+# The omz `fzf` plugin loads these when it finds fzf; this is a fallback for
+# images where it doesn't (needs fzf >= 0.48 for `fzf --zsh`).
+if command -v fzf >/dev/null 2>&1 && (( ! ${+functions[fzf-history-widget]} )); then
+  source <(fzf --zsh) 2>/dev/null
+fi
 
 # Node Version Manager — try common locations (Arch package, or nvm installer).
 for _nvm_init in /usr/share/nvm/init-nvm.sh "$HOME/.nvm/nvm.sh"; do
