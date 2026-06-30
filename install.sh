@@ -90,11 +90,14 @@ install_neovim() {
   local base="https://github.com/neovim/neovim/releases/download/$ver"
   local tmp asset=""
   tmp="$(mktemp -d)"
+  # --connect-timeout so a network that blocks the GitHub release CDN fails fast
+  # (default curl connect timeout is 300s) instead of hanging the whole install.
+  local CURL="curl -fsSL --connect-timeout 20 --retry 2"
   for a in nvim-linux-x86_64.tar.gz nvim-linux64.tar.gz; do
-    if curl -fsSL -o "$tmp/nvim.tar.gz" "$base/$a"; then asset="$a"; break; fi
+    if $CURL -o "$tmp/nvim.tar.gz" "$base/$a"; then asset="$a"; break; fi
   done
-  if [ -z "$asset" ]; then warn "neovim download failed ($ver) — skipping"; rm -rf "$tmp"; return 0; fi
-  if curl -fsSL -o "$tmp/sum" "$base/$asset.sha256sum"; then
+  if [ -z "$asset" ]; then warn "neovim download failed/unreachable ($ver) — skipping (image should ship neovim)"; rm -rf "$tmp"; return 0; fi
+  if $CURL -o "$tmp/sum" "$base/$asset.sha256sum"; then
     if ! ( cd "$tmp" && printf '%s  nvim.tar.gz\n' "$(cut -d' ' -f1 sum)" | sha256sum -c - >/dev/null 2>&1 ); then
       warn "neovim checksum MISMATCH — aborting nvim install"; rm -rf "$tmp"; return 0
     fi
