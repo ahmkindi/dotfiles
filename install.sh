@@ -16,7 +16,7 @@ warn() { printf '\033[1;33m[dotfiles]\033[0m %s\n' "$*" >&2; }
 for t in zsh git curl; do
   command -v "$t" >/dev/null 2>&1 || warn "required tool '$t' not found — add it to the workspace image."
 done
-for t in tmux nvim rg fzf; do
+for t in tmux rg fzf; do
   command -v "$t" >/dev/null 2>&1 || warn "optional tool '$t' missing — related config won't fully work."
 done
 
@@ -66,7 +66,56 @@ if command -v zsh >/dev/null 2>&1 && [ "${SHELL:-}" != "$(command -v zsh)" ]; th
   fi
 fi
 
-# 6. Pre-install Neovim plugins so the first interactive launch is fast (non-fatal)
+# 5b. Interactive bash -> zsh handoff. Coder's web terminal and VS Code/Cursor
+#     terminals start /bin/bash (ignoring the login shell), so they'd otherwise
+#     miss this whole zsh setup. This flips them to zsh.
+if ! grep -q 'exec zsh' "$HOME/.bashrc" 2>/dev/null; then
+  cat >> "$HOME/.bashrc" <<'BASHRC'
+
+# switch interactive bash -> zsh (web/VSCode terminals default to bash)
+if [[ $- == *i* ]] && command -v zsh >/dev/null 2>&1 && [[ -z $ZSH_VERSION ]]; then
+  exec zsh
+fi
+BASHRC
+  info "added bash -> zsh handoff to ~/.bashrc"
+fi
+
+# 6. Neovim — install to user space if the image doesn't provide it (no sudo).
+#    Version pinned via $NVIM_VERSION (default: stable); archive checksum-verified
+#    against the release's published .sha256sum before extracting.
+install_neovim() {
+  command -v nvim >/dev/null 2>&1 && return 0
+  command -v curl >/dev/null 2>&1 || { warn "curl missing — cannot install neovim"; return 0; }
+  local ver="${NVIM_VERSION:-stable}"
+  local base="https://github.com/neovim/neovim/releases/download/$ver"
+  local tmp asset=""
+  tmp="$(mktemp -d)"
+  for a in nvim-linux-x86_64.tar.gz nvim-linux64.tar.gz; do
+    if curl -fsSL -o "$tmp/nvim.tar.gz" "$base/$a"; then asset="$a"; break; fi
+  done
+  if [ -z "$asset" ]; then warn "neovim download failed ($ver) — skipping"; rm -rf "$tmp"; return 0; fi
+  if curl -fsSL -o "$tmp/sum" "$base/$asset.sha256sum"; then
+    if ! ( cd "$tmp" && printf '%s  nvim.tar.gz\n' "$(cut -d' ' -f1 sum)" | sha256sum -c - >/dev/null 2>&1 ); then
+      warn "neovim checksum MISMATCH — aborting nvim install"; rm -rf "$tmp"; return 0
+    fi
+    info "neovim checksum verified"
+  else
+    warn "no published checksum for $ver — installing unverified"
+  fi
+  tar -xzf "$tmp/nvim.tar.gz" -C "$tmp"
+  local dir; dir="$(find "$tmp" -maxdepth 1 -type d -name 'nvim-linux*' | head -1)"
+  [ -n "$dir" ] || { warn "neovim archive layout unexpected — skipping"; rm -rf "$tmp"; return 0; }
+  mkdir -p "$HOME/.local/bin"
+  rm -rf "$HOME/.local/nvim"
+  mv "$dir" "$HOME/.local/nvim"
+  ln -sfn "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+  rm -rf "$tmp"
+  info "neovim $ver installed to ~/.local/nvim (on ~/.local/bin)"
+}
+install_neovim
+export PATH="$HOME/.local/bin:$PATH"
+
+# 7. Pre-install Neovim plugins so the first interactive launch is fast (non-fatal)
 if command -v nvim >/dev/null 2>&1; then
   info "Syncing Neovim plugins (first run only)"
   nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || warn "nvim plugin sync skipped — will install on first launch."

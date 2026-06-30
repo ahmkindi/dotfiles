@@ -1,5 +1,9 @@
 # ~/.zshrc — portable across local Arch machine and Coder workspaces.
 
+# User-space binaries (e.g. neovim installed by install.sh) — must come before
+# the EDITOR check below so `command -v nvim` finds it.
+export PATH="$HOME/.local/bin:$PATH"
+
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 
