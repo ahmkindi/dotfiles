@@ -1,7 +1,7 @@
 # ~/.zshrc — portable across local Arch machine and Coder workspaces.
 
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="avit"
+ZSH_THEME="robbyrussell"
 
 # Add wisely — too many plugins slow shell startup.
 # Order matters: fzf before fzf-tab; zsh-syntax-highlighting must load last.
